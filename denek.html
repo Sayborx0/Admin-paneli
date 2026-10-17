@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#121417">
+<link rel="manifest" href="manifest.json">
+<title>SAYMODZ Admin</title>
+<style>
+body{margin:0;background:#121417;color:#e6e9ef;font:12px -apple-system,Segoe UI,Roboto,sans-serif;-webkit-user-select:none;user-select:none}
+.w{max-width:560px;margin:0 auto;padding:10px}
+h3{color:#5c7cfa;margin:16px 0 6px;font-size:13px}
+input,select{background:#1e222a;border:1px solid #3b404d;color:#fff;border-radius:4px;padding:6px;font-size:12px;margin:2px 0;width:100%;box-sizing:border-box;user-select:text}
+input[type=color]{height:30px;padding:2px}
+input[type=checkbox]{width:auto}
+button{background:#5c7cfa;border:0;color:#fff;border-radius:4px;padding:5px 8px;font-size:11px;cursor:pointer;margin:2px}
+button.r{background:#f75b5b}
+.row{background:#282c34;border:1px solid #3b404d;border-radius:4px;padding:6px;margin:4px 0;display:flex;justify-content:space-between;align-items:center;gap:6px;flex-wrap:wrap}
+.card{background:#1e222a;border:1px solid #3b404d;border-radius:6px;padding:10px}
+small{color:#9ea4b0}
+.tg{width:100%;text-align:left;padding:8px;background:#1e222a;border:1px solid #3b404d;color:#e6e9ef;font-size:12px;margin:2px 0}
+.sbox{max-height:220px;overflow-y:auto;background:#1e222a;border:1px solid #3b404d;border-radius:6px;padding:6px;margin-top:4px}
+.chips{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
+.chip{background:#282c34;border:1px solid #3b404d;border-radius:12px;padding:4px 8px;cursor:pointer;white-space:nowrap;font-size:11px}
+.chip.on{border-color:#5c7cfa;background:rgba(92,124,250,.25)}
+</style>
+</head>
+<body>
+<div class="w">
+
+<div id="login" class="card">
+  <h3>Yönetici Girişi</h3>
+  <input id="lu" placeholder="Kullanıcı Adı">
+  <input id="lp" type="password" placeholder="Şifre">
+  <button onclick="login()">Giriş Yap</button>
+</div>
+
+<div id="panel" style="display:none">
+  <h3>👥 Kullanıcılar <small id="onl"></small></h3>
+  <button class="tg" id="uBtn" onclick="togBox('uBox')">👥 Kullanıcılar ▾</button>
+  <div class="sbox" id="uBox" style="display:none">
+    <input id="uq" placeholder="Kullanıcı ara..." oninput="drawUsers()">
+    <div id="users" class="chips"></div>
+  </div>
+  <div id="uSel"></div>
+
+  <h3>📢 Sistem Bildirimi</h3>
+  <div class="card">
+    <input id="nTxt" placeholder="Bildirim metni">
+    <label>Renk <input type="color" id="nCol" value="#5c7cfa" style="width:50px"></label>
+    <label>Kaç saniye kalsın <input type="number" id="nDur" min="1" value="10" style="width:80px"></label>
+    <label><input type="checkbox" id="nSnd" checked> Ses çal</label>
+    <button onclick="sendNotice()">Gönder</button>
+  </div>
+
+  <h3>🎨 Sistem Renkleri</h3>
+  <div class="card">
+    <label>Vurgu <input type="color" id="sAcc" value="#5c7cfa" style="width:50px"></label>
+    <label>Yönetici adı <input type="color" id="sAdm" value="#ffd700" style="width:50px"></label>
+    <button onclick="saveStyle()">Herkese Uygula</button>
+  </div>
+
+  <h3>#️⃣ Kanallar</h3>
+  <div class="card">
+    <input id="cName" placeholder="Kanal adı">
+    <select id="cRole"><option value="all">Herkes yazabilir</option><option value="admin">Sadece yönetici yazabilir</option></select>
+    <button onclick="addChan()">Kanal Oluştur</button>
+  </div>
+  <div id="chans"></div>
+
+  <h3>🚫 Yasaklı Kelimeler</h3>
+  <div class="card">
+    <input id="bwIn" placeholder="Yasaklanacak kelime, tek kelime">
+    <button class="r" onclick="addBadWord()">Ekle</button>
+    <small>Sohbette bu kelimeler içeren mesajlar gönderilemez.</small>
+  </div>
+  <div id="badWords"></div>
+
+  <h3>🛠️ Bakım Modu</h3>
+  <div class="card">
+    <label><input type="checkbox" id="mtOn" style="width:auto"> Bakım modu açık</label>
+    <input id="mtMsg" placeholder="Kullanıcılara gösterilecek sebep">
+    <button onclick="saveMaint()">Kaydet</button>
+  </div>
+
+  <h3>🐢 Yavaş Mod Sohbet</h3>
+  <div class="card">
+    <label><input type="checkbox" id="slowOn" style="width:auto"> Açık</label>
+    <input id="slowSec" type="number" min="1" value="10" placeholder="Saniye">
+    <button onclick="saveSlow()">Kaydet</button>
+  </div>
+
+  <h3>💬 Son Sohbet Mesajları</h3>
+  <div id="msgsAdm"></div>
+
+  <h3>🚩 Şikayetler</h3>
+  <button class="tg" id="rBtn" onclick="togBox('rBox')">🚩 Şikayetler ▾</button>
+  <div class="sbox" id="rBox" style="display:none"><div id="reports"></div></div>
+
+  <h3>📜 Yönetici Logu</h3>
+  <div id="logs"></div>
+</div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { getDatabase, ref, push, onValue, set, get, query, limitToLast } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+const app = initializeApp({
+  apiKey: "AIzaSyDrr7d_enIeE1pOk-Ov_23TpwKEpDrHRdw",
+  authDomain: "saymodz-2d1ed.firebaseapp.com",
+  databaseURL: "https://saymodz-2d1ed-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "saymodz-2d1ed",
+  storageBucket: "saymodz-2d1ed.firebasestorage.app",
+  messagingSenderId: "203228147622",
+  appId: "1:203228147622:web:fb9101596485d2d3596967"
+});
+const auth = getAuth(app), db = getDatabase(app);
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const emailOf = u => u.toLowerCase().replace(/[^a-z0-9]/g, '') + '@saymodz.chat';
+const slugify = s => s
+  .replace(/ı/g, 'i').replace(/İ/g, 'i').replace(/ğ/g, 'g').replace(/Ğ/g, 'g')
+  .replace(/ş/g, 's').replace(/Ş/g, 's').replace(/ç/g, 'c').replace(/Ç/g, 'c')
+  .replace(/ö/g, 'o').replace(/Ö/g, 'o').replace(/ü/g, 'u').replace(/Ü/g, 'u')
+  .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+let U = {}, O = {}, R = {}, C = {}, M = {}, L = {}, W = {}, SEL = null, ADM = 'Yönetici';
+
+window.login = async () => {
+  try { await signInWithEmailAndPassword(auth, emailOf($('lu').value.trim()), $('lp').value.trim()); }
+  catch (e) { alert('Giriş başarısız: ' + e.message); }
+};
+onAuthStateChanged(auth, async u => {
+  if (!u) { $('login').style.display = 'block'; $('panel').style.display = 'none'; return; }
+  const s = await get(ref(db, 'users/' + u.uid));
+  if (s.val()?.role !== 'admin') { alert('Bu hesabın yönetici yetkisi yok.'); return signOut(auth); }
+  ADM = s.val()?.username || 'Yönetici';
+  $('login').style.display = 'none'; $('panel').style.display = 'block';
+  onValue(ref(db, 'users'), s => { U = s.val() || {}; drawUsers(); });
+  onValue(ref(db, 'online'), s => { O = s.val() || {}; drawUsers(); });
+  onValue(ref(db, 'reports'), s => { R = s.val() || {}; drawReports(); });
+  onValue(ref(db, 'channels'), s => { C = s.val() || {}; drawChans(); });
+  onValue(ref(db, 'badWords'), s => { W = s.val() || {}; drawBad(); });
+  onValue(ref(db, 'system/maintenance'), s => { const v = s.val() || {}; $('mtOn').checked = !!v.enabled; $('mtMsg').value = v.message || ''; });
+  onValue(query(ref(db, 'adminLogs'), limitToLast(50)), s => { L = s.val() || {}; drawLogs(); });
+  ['genel', 'duyurular'].forEach(ch => onValue(query(ref(db, 'channelMessages/' + ch), limitToLast(30)), s => { M[ch] = s.val() || {}; drawMsgs(); }));
+  onValue(ref(db, 'system/slow'), s => { const v = s.val() || {}; $('slowOn').checked = !!v.enabled; $('slowSec').value = v.seconds || 10; });
+});
+
+const put = (p, v) => set(ref(db, p), v).catch(e => alert('Hata: ' + e.message));
+const logAct = text => push(ref(db, 'adminLogs'), { text, by: ADM, time: Date.now() }).catch(() => {});
+
+window.togBox = id => { const b = $(id); b.style.display = b.style.display === 'none' ? 'block' : 'none'; };
+window.drawUsers = () => {
+  const q = $('uq').value.toLowerCase();
+  const ids = Object.keys(U).filter(id => (U[id].username || '').toLowerCase().includes(q));
+  $('onl').innerText = `🟢 ${Object.keys(O).length} çevrimiçi`;
+  $('uBtn').innerText = `👥 Kullanıcılar · ${Object.keys(U).length} ▾`;
+  $('users').innerHTML = ids.map(id =>
+    `<span class="chip ${SEL === id ? 'on' : ''}" onclick="pickUser('${id}')">${O[id] ? '🟢' : '⚪'} ${esc(U[id].username)}${U[id].isBanned ? ' · BANLI' : ''}</span>`
+  ).join('') || '<small>Kullanıcı yok</small>';
+  drawSel();
+};
+window.pickUser = id => { SEL = SEL === id ? null : id; drawUsers(); };
+function drawSel() {
+  const id = SEL, u = id && U[id];
+  if (!u) { $('uSel').innerHTML = ''; return; }
+  const now = Date.now();
+  $('uSel').innerHTML = `<div class="card" style="margin-top:6px">
+    <b>${esc(u.username)}</b> · ${esc(u.role || 'user')}
+    ${u.isBanned ? ' · <span style="color:#f75b5b">BANLI</span>' : ''}
+    ${(u.timeoutUntil || 0) > now ? ' · ⏳ zaman aşımı' : ''}
+    <div style="margin-top:6px">
+      <button class="${u.isBanned ? '' : 'r'}" onclick="ban('${id}', ${!u.isBanned})">${u.isBanned ? 'Banı Kaldır' : 'Banla'}</button>
+      <button onclick="tmo('${id}')">Zaman Aşımı</button>
+      <button onclick="setRole('${id}','${u.role === 'admin' ? 'user' : 'admin'}')">${u.role === 'admin' ? 'Yetkiyi Al' : 'Admin Yap'}</button>
+      <button onclick="setColor('${id}')">Renk</button>
+      <button onclick="sysDm('${id}')">Sistem DM</button>
+    </div></div>`;
+}
+window.ban = async (id, val) => {
+  const name = U[id]?.username || id;
+  if (val && !confirm('Kullanıcı banlansın mı?')) return;
+  await put(`users/${id}/isBanned`, val);
+  if (val) await put(`users/${id}/banMessage`, prompt('Ban mesajı:', 'Kurallara aykırı davranış nedeniyle banlandınız.') || '');
+  logAct(`${name} ${val ? 'banlandı' : 'banı kaldırıldı'}`);
+};
+window.addBadWord = async () => {
+  const w = $('bwIn').value.trim().toLocaleLowerCase('tr-TR');
+  if (!w) return;
+  if (/\s/.test(w)) return alert('Lütfen tek kelime girin.');
+  if (Object.values(W).some(x => x.word === w)) return alert('Bu kelime zaten listede.');
+  try {
+    await push(ref(db, 'badWords'), { word: w, by: ADM, time: Date.now() });
+    logAct(`Yasaklı kelime eklendi: ${w}`);
+    $('bwIn').value = '';
+  } catch (e) { alert('Hata: ' + e.message); }
+};
+window.delBadWord = async key => {
+  const w = W[key]?.word || '';
+  await put(`badWords/${key}`, null);
+  logAct(`Yasaklı kelime kaldırıldı: ${w}`);
+};
+function drawBad() {
+  $('badWords').innerHTML = Object.entries(W).map(([k, b]) =>
+    `<div class="row"><span><b>${esc(b.word)}</b></span><button class="r" onclick="delBadWord('${k}')">Kaldır</button></div>`
+  ).join('') || '';
+}
+
+window.tmo = async id => {
+  const name = U[id]?.username || id;
+  const m = +prompt('Zaman aşımı süresi, dakika. 0 kaldırır:', '30');
+  if (isNaN(m)) return;
+  await put(`users/${id}/timeoutUntil`, m > 0 ? Date.now() + m * 60000 : 0);
+  if (m > 0) await put(`users/${id}/timeoutMessage`, prompt('Zaman aşımı mesajı:', '') || '');
+  logAct(`${name} ${m > 0 ? m + ' dakika zaman aşımına alındı' : 'zaman aşımı kaldırıldı'}`);
+};
+window.setRole = (id, r) => {
+  logAct(`${U[id]?.username || id} yetkisi: ${r === 'admin' ? 'yönetici yapıldı' : 'yetkisi alındı'}`);
+  return put(`users/${id}/role`, r);
+};
+window.sysDm = async id => {
+  const t = prompt('Sistem mesajı, yanıtlanamaz:'); if (!t) return;
+  push(ref(db, `systemDm/${id}`), { senderUid: 'system', sender: 'Sistem', text: t, time: Date.now(), isSystem: true })
+    .then(() => logAct(`${U[id]?.username || id} kullanıcısına sistem mesajı gönderildi`))
+    .catch(e => alert(e.message));
+};
+window.setColor = async id => {
+  const c = prompt('İsim rengi. Örnek: #ff0000. Boş bırakırsanız varsayılan renk kullanılır:', U[id]?.color || '#5c7cfa');
+  if (c === null) return;
+  if (c.trim() && !/^#[0-9a-fA-F]{6}$/.test(c.trim())) return alert('Geçersiz renk kodu. Örnek: #ff0000');
+  await put(`users/${id}/color`, c.trim() || null);
+};
+window.saveSlow = () => {
+  const sec = Math.max(1, +$('slowSec').value || 10);
+  put('system/slow', { enabled: $('slowOn').checked, seconds: sec });
+  logAct(`Yavaş mod ${$('slowOn').checked ? 'açıldı, ' + sec + ' saniye' : 'kapatıldı'}`);
+};
+function drawMsgs() {
+  const all = [];
+  Object.entries(M).forEach(([ch, o]) => Object.entries(o || {}).forEach(([id, m]) => all.push({ ...m, id, path: 'channelMessages/' + ch, ch })));
+  all.sort((a, b) => b.time - a.time);
+  $('msgsAdm').innerHTML = all.slice(0, 30).map(m =>
+    `<div class="row"><span><small>${esc(m.ch)}</small> <b>${esc(m.sender)}</b>: ${esc(m.text)}</span><button class="r" onclick="delMsg('${m.path}','${m.id}')">Sil</button></div>`
+  ).join('') || '';
+}
+window.delMsg = async (p, id) => {
+  if (!confirm('Mesaj silinsin mi?')) return;
+  const m = M[p.split('/')[1]]?.[id];
+  await put(`${p}/${id}`, null);
+  logAct(`Mesaj silindi · ${p.split('/')[1]} · ${m?.sender || ''}: ${m?.text || ''}`);
+};
+window.delReported = async (rid, p, mid) => {
+  await put(`${p}/${mid}`, null);
+  await put(`reports/${rid}`, null);
+  logAct(`Şikayetli mesaj silindi, şikayet kapatıldı · ${R[rid]?.reportedName || ''}`);
+};
+window.sendNotice = () => {
+  const t = $('nTxt').value.trim(); if (!t) return;
+  const dur = Math.max(1, +$('nDur').value || 10);
+  put('system/notice', { id: String(Date.now()), text: t, color: $('nCol').value, sound: $('nSnd').checked, duration: dur, time: Date.now() });
+  logAct(`Sistem bildirimi gönderildi, ${dur} saniye: ${t}`);
+  $('nTxt').value = '';
+};
+window.saveStyle = () => {
+  put('system/style', { accent: $('sAcc').value, adminColor: $('sAdm').value });
+  logAct('Sistem renkleri güncellendi');
+};
+
+window.addChan = async () => {
+  const n = $('cName').value.trim();
+  if (!n) return alert('Kanal adı girin.');
+  let id = slugify(n);
+  if (!id) id = 'kanal-' + Date.now().toString(36);
+  if (C[id]) return alert('Bu isimde bir kanal zaten var.');
+  await put('channels/' + id, { name: n, writeRole: $('cRole').value, createdAt: Date.now() });
+  logAct(`Kanal oluşturuldu: #${n}`);
+  $('cName').value = '';
+};
+window.delChan = id => {
+  if (!confirm('Kanal silinsin mi?')) return;
+  put('channels/' + id, null);
+  logAct(`Kanal silindi: #${C[id]?.name || id}`);
+};
+function drawChans() {
+  $('chans').innerHTML = Object.entries(C).map(([id, c]) =>
+    `<div class="row"><span>#${esc(c.name)} · ${c.writeRole === 'admin' ? 'yalnız yönetici' : 'herkes'}</span><button class="r" onclick="delChan('${id}')">Sil</button></div>`
+  ).join('') || '';
+}
+
+function drawReports() {
+  const list = Object.entries(R).reverse();
+  $('rBtn').innerText = `🚩 Şikayetler · ${list.length} ▾`;
+  $('reports').innerHTML = list.map(([id, r]) => `
+    <div class="row"><span>🚩 <b>${esc(r.reportedName)}</b> — ${esc(r.reason)}<br><small>"${esc(r.text)}" · şikayet eden: ${esc(r.reporterName)}</small></span>
+    <span><button class="r" onclick="ban('${r.reportedUid}', true)">Banla</button>${r.msgPath ? `<button class="r" onclick="delReported('${id}','${r.msgPath}','${r.msgId}')">Mesajı Sil</button>` : ''}<button onclick="closeReport('${id}')">Kapat</button></span></div>`
+  ).join('') || '<small>Şikayet yok</small>';
+}
+window.closeReport = id => { put('reports/' + id, null); logAct('Şikayet kapatıldı'); };
+
+function drawLogs() {
+  $('logs').innerHTML = Object.values(L).sort((a, b) => b.time - a.time).map(l =>
+    `<div class="row"><span><small>${new Date(l.time).toLocaleString('tr-TR')}</small><br><b>${esc(l.by)}</b>: ${esc(l.text)}</span></div>`
+  ).join('') || '';
+}
+window.saveMaint = () => {
+  const on = $('mtOn').checked, msg = $('mtMsg').value.trim();
+  put('system/maintenance', { enabled: on, message: msg, time: Date.now() });
+  logAct(`Bakım modu ${on ? 'açıldı' : 'kapatıldı'}${msg ? ' · ' + msg : ''}`);
+};
+window.put = put;
+</script>
+</body>
+</html>
